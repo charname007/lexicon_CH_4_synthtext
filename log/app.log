@@ -1,0 +1,14 @@
+2026-10-12 16:27:32.669 | INFO     | __main__:main:216 - Loaded charset from C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\charset.txt
+2026-10-12 16:27:32.669 | INFO     | __main__:main:217 - Counted frequencies using jieba
+2026-10-12 16:27:33.406 | INFO     | __main__:count_frequency:75 - Total words: 16, Total chars: 32, Total paragraphs: 3
+2026-10-12 16:27:33.408 | INFO     | __main__:save_frequency_to_file:93 - Saved frequency data to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\word_freq.csv
+2026-10-12 16:27:33.412 | INFO     | __main__:save_frequency_to_file:93 - Saved frequency data to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\char_freq.csv
+2026-10-12 16:27:33.413 | INFO     | __main__:save_frequency_to_file:93 - Saved frequency data to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\DF_word.csv
+2026-10-12 16:27:33.424 | INFO     | __main__:main:227 - Total words: 16, Total chars: 32, Total paragraphs: 3
+2026-10-12 16:27:33.424 | INFO     | __main__:save_frequency_to_file:93 - Saved frequency data to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\rdf.csv
+2026-10-12 16:27:33.426 | INFO     | __main__:filter_by_df:162 - Kept 8 words with document frequency >= 0.0001 (100.00% of total words)
+2026-10-12 16:27:33.426 | INFO     | __main__:filter:179 - Filtered document frequencies with 8 documents
+2026-10-12 16:27:33.426 | INFO     | __main__:cumulative_token_coverage:134 - Kept 8 words, covering 100.00% of total tokens (threshold=0.99)
+2026-10-12 16:27:33.428 | INFO     | __main__:save_frequency_to_file:93 - Saved frequency data to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\word_freq_ctc.csv
+2026-10-12 16:27:33.430 | INFO     | __main__:filter:184 - Filtered word frequencies with 8 words
+2026-10-12 16:27:33.431 | INFO     | __main__:save_word_list:103 - Saved 8 words to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\lexicon.txt

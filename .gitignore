@@ -2,3 +2,6 @@ corpus/
 __pycache__/
 .venv/
 *.pyc
+CLAUDE.md
+AGENTS.md
+
