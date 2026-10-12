@@ -1,8 +1,12 @@
 from loguru import logger
+from pathlib import Path
 import sys
 
 
-LOG_FILE = "app.log"  # 日志文件名
+ROOT_DIR = Path(__file__).resolve().parent.parent
+LOG_DIR = ROOT_DIR / "log"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_FILE = LOG_DIR / "app.log"  # 日志文件名
 
 
 def setup_logger():

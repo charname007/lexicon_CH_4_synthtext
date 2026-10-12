@@ -32,6 +32,7 @@ def clean_corpus(paragraph: str):
     
     
     pass
+    return paragraph
 
 
 def load_charset(charset_path: Path):
@@ -53,6 +54,7 @@ def count_frequency(corpus_dir: Path, charset: set, segment):
     char_sum=0
     
     for paragraph in load_corpus(corpus_dir):
+        paragraph=clean_corpus(paragraph)
         word_set=set()  # 用于统计DF_word
         for sentence in SPECIAL_CHARACTERS.split(paragraph):
             sentence = sentence.strip()
@@ -69,7 +71,6 @@ def count_frequency(corpus_dir: Path, charset: set, segment):
         DF_sum += 1
         DF_word.update(word_set)
     
-    word_freq=
     logger.info(f"Total words: {words_sum}, Total chars: {char_sum}, Total paragraphs: {DF_sum}")
     save_frequency_to_file(word_freq, Path("word_freq.csv"))
     save_frequency_to_file(char_freq, Path("char_freq.csv"))
@@ -146,7 +147,7 @@ def filter_by_df(DF_counter: Counter, total_docs: int, threshold: float = 0.0001
     for word, df in DF_counter.items():
         if df / total_docs >= threshold:
             rdf[word] = df / total_docs
-    save_frequency_to_file(rdf, Path("output/rdf.csv"))
+    save_frequency_to_file(rdf, Path("rdf.csv"))
     filtered_words = list(rdf.keys())
     logger.info(
         f"Kept {len(filtered_words)} words with document frequency >= {threshold} "
@@ -165,6 +166,19 @@ def filter(word_freq: Counter, DF_counter: Counter, total_docs: int):
         DF_counter (Counter): _description_
         total_docs (int): _description_
     """
+    filtered_DF, filtered_words = filter_by_df(DF_counter, total_docs, threshold=0.0001)
+    logger.info(f"Filtered document frequencies with {len(filtered_DF)} documents")
+    
+    word_freq=Counter({w: word_freq[w] for w in filtered_words if w in word_freq})
+    
+    filtered_word_freq, filtered_words = cumulative_token_coverage(word_freq, threshold=0.99)
+    logger.info(f"Filtered word frequencies with {len(filtered_word_freq)} words")
+
+
+    filtered_DF = Counter({w: filtered_DF[w] for w in filtered_words if w in filtered_DF})
+    return filtered_word_freq,  filtered_DF ,filtered_words
+
+
 
 # def compute_juilland_d(total_freq: Counter, sum_sq: Counter, total_docs: int):
 #     """Juilland's D：D = 1 - V/sqrt(n-1)，V = sigma/f_bar 为变异系数。
@@ -207,31 +221,11 @@ def main(corpus_dir: Path, charset_path: Path, output_dir: Path,segmentation_too
         raise ValueError(f"Unsupported segmentation tool: {segmentation_tool}")
 
 
-    word_freq, words_sum, char_freq, chars_sum, DF_word, DF_sum = count_frequency(corpus_dir, charset, segment)
-    logger.info(f"Total words: {words_sum}, Total chars: {chars_sum}, Total paragraphs: {DF_sum}")
+    word_freq, words_sum, char_freq, char_sum, DF_word, DF_sum = count_frequency(corpus_dir, charset, segment)
+    logger.info(f"Total words: {words_sum}, Total chars: {char_sum}, Total paragraphs: {DF_sum}")
 
-    filtered_word_freq, filtered_words = cumulative_token_coverage(word_freq, threshold=0.99)
-    logger.info(f"Filtered word frequencies with {len(filtered_word_freq)} words")
+    filtered_word_freq, filtered_DF, filtered_words = filter(word_freq, DF_word, DF_sum)
 
-    filtered_DF = Counter({w: DF_word[w] for w in filtered_words if w in DF_word})
-    logger.info(f"Filtered document frequencies with {len(filtered_DF)} documents")
-
-    # save_frequency_to_file(word_freq, output_dir / word_freq_file)
-    # save_frequency_to_file(char_freq, output_dir / "char_freq.csv")
-    # save_frequency_to_file(DF_word, output_dir / "DF_word.csv")
-
-    # word_freq_jieba, char_freq_jieba = count_frequency_jieba(corpus_dir, charset)
-    # logger.info("Counted frequencies using Jieba")
-
-    # word_freq_hanlp, char_freq_hanlp = count_frequency_hanlp(corpus_dir, charset)
-    # logger.info("Counted frequencies using HanLP")
-
-    # output_dir.mkdir(parents=True, exist_ok=True)
-
-    # save_frequency_to_file(word_freq_jieba, output_dir / "word_freq_jieba.txt")
-    # save_frequency_to_file(char_freq_jieba, output_dir / "char_freq_jieba.txt")
-    # save_frequency_to_file(word_freq_hanlp, output_dir / "word_freq_hanlp.txt")
-    # save_frequency_to_file(char_freq_hanlp, output_dir / "char_freq_hanlp.txt")
 
 
 
@@ -239,9 +233,9 @@ def main(corpus_dir: Path, charset_path: Path, output_dir: Path,segmentation_too
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--corpus_dir", type=Path, default="./corpus")
-    parser.add_argument("--charset_path", type=Path, default="./charset.txt")
+    parser.add_argument("--charset_path", type=Path, default="./characters.txt")
     parser.add_argument("--output_dir", type=Path, default="./output")
-    parser.add_argument("--segmentation_tool", type=str, default="hanlp", choices=["jieba", "hanlp"], help="Segmentation tool to use: 'jieba' or 'hanlp'")
+    parser.add_argument("--segmentation_tool", type=str, default="jieba", choices=["jieba", "hanlp"], help="Segmentation tool to use: 'jieba' or 'hanlp'")
     
     args = parser.parse_args()
     main(args.corpus_dir, args.charset_path, args.output_dir, args.segmentation_tool)
