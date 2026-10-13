@@ -12,3 +12,7 @@
 2026-10-12 16:27:33.428 | INFO     | __main__:save_frequency_to_file:93 - Saved frequency data to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\word_freq_ctc.csv
 2026-10-12 16:27:33.430 | INFO     | __main__:filter:184 - Filtered word frequencies with 8 words
 2026-10-12 16:27:33.431 | INFO     | __main__:save_word_list:103 - Saved 8 words to C:\Users\z\AppData\Local\Temp\tmp.tWxfn5Lkk7\out\lexicon.txt
+2026-10-13 10:05:21.644 | INFO     | plot_word_freq_loglog:plot_word_frequency_loglog:174 - Saved log-log plot to C:\Users\z\AppData\Local\Temp\tmpup89vdo3\word_freq_loglog.svg
+2026-10-13 10:06:17.275 | INFO     | __main__:plot_word_frequency_loglog:174 - Saved log-log plot to output\word_freq_loglog.svg
+2026-10-13 10:07:13.832 | INFO     | plot_word_freq_loglog:plot_word_frequency_loglog:191 - Saved log-log plot to C:\Users\z\AppData\Local\Temp\tmpca2521r0\word_freq_loglog.svg
+2026-10-13 10:07:32.002 | INFO     | __main__:plot_word_frequency_loglog:191 - Saved log-log plot to output\word_freq_loglog.svg
