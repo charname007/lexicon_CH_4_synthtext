@@ -17,9 +17,7 @@
 import argparse
 import csv
 from pathlib import Path
-
 from compare_lexicon import evaluate, load_words
-
 from build_backup_lexicon import iter_dict_entries
 
 # 三张表的 CSV 列
