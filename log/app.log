@@ -32,3 +32,8 @@
 2026-10-13 15:44:57.143 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 2 words, covering 99.90% of total tokens (threshold=0.995), which is 66.67% of total words
 2026-10-13 15:45:26.461 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 1211799 words, covering 99.50% of total tokens (threshold=0.995), which is 16.29% of total words
 2026-10-13 15:45:29.211 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 1728738 words, covering 99.50% of total tokens (threshold=0.995), which is 23.24% of total words
+2026-10-14 12:39:02.279 | INFO     | __main__:main:79 - Loaded charset from charset.txt (9218 chars)
+2026-10-14 12:39:18.602 | INFO     | __main__:main:83 - Raw titles: wiki=1043224, dict=70661
+2026-10-14 12:39:20.121 | INFO     | __main__:main:87 - After charset filter: 958395 / 1113885
+2026-10-14 12:39:21.463 | INFO     | __main__:main:90 - Unique entries: 941736
+2026-10-14 12:39:22.485 | INFO     | __main__:main:97 - Saved 941736 entries to output\backup_lexicon.txt
