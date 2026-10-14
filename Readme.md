@@ -120,6 +120,28 @@ Jieba 分词核心词典（dict.txt.big）：带词频标记的数万高质量�
 
 
 ## 字符表
+来自paddle ocr 的Chinese dict
+
 
 使用现有分词工具
 jieba，hanlp等。。。
+
+
+
+# 参考论文
+《Traditional Chinese Synthetic Datasets Verified with Labeled Data for Scene Text Recognition》
+台湾教育部辞典与维基百科条目标题
+
+Jaderberg et al., MJSynth（NIPS DL Workshop 2014 / IJCV 2016）
+ Hunspell 词典 ∩ 真实 STR 数据集的 ground truth（IC03、SVT、IIIT）。
+
+A CNN Based Scene Chinese Text Recognition Algorithm With Synthetic Data Engine
+  generates representative character images according to the fonts use frequency of Chinese texts.
+
+
+
+synthtiger采用策略为
+"Languages such as Chinese and Japanese use a large number of characters. A synthesized dataset for such a language often lacks enough amount of samples for rare characters. To deal with this problem, SynthTIGER conducts character distribution augmentation with the probability p 
+c.d.
+​
+ . When the augmentation is triggered, it randomly chooses a character from vocabulary and samples a word having that character."

@@ -7,6 +7,7 @@ from pathlib import Path
 import jieba
 import hanlp
 from collections import Counter, defaultdict
+import torch 
 from utils.logger import logger
 import argparse
 # from special_chars import SPECIAL_CHARACTERS  # 已改为整段分词，不再按标点 split，暂不需要
@@ -64,13 +65,13 @@ def clean_corpus(paragraph: str):
     
     
     
-    paragraph = regex.sub(r"\p{Z}+", "", paragraph)   # 只去掉空白/分隔符，保留标点符号
+    # paragraph = regex.sub(r"\p{Z}+", "", paragraph)   # 只去掉空白/分隔符，保留标点符号
     return paragraph
 
 
 def load_charset(charset_path: Path):
     """
-    使用来自paddocr的中文字符集
+    使用来自paddle ocr的中文字符集
     """
     with charset_path.open("r", encoding="utf-8") as f:
         charset = set([line.strip() for line in f if line.strip()])
@@ -108,7 +109,7 @@ def count_frequency(corpus_dir: Path, charset: set, segment: str):
     """
     word_freq = Counter()
     char_freq = Counter(dict.fromkeys(charset, 0))
-    DF_word = Counter()  # DF(w)=包含词w的文档数量，这里采用段落数
+    DF_word = Counter()  # DF(w)=包含词w的文档数量，这里采用段落数,不过这里的段落应该是相互独立的文档
     word_sum_sq = Counter()  # Σ f_i^2，用于计算各文档词频的标准差 / CV
     # postings = defaultdict(list)  # word -> [(doc_id, f_i), ...]，供 Gries DP（已改为临时 sqlite）
     # doc_sizes = []  # 各文档（段落）token 数 n_i，空文档不计入
@@ -131,14 +132,15 @@ def count_frequency(corpus_dir: Path, charset: set, segment: str):
         segment_tool = lambda sents: [list(jieba.cut(s)) for s in sents]
         logger.info("Using jieba for segmentation")
     elif segment == "hanlp":
-        hanlp_tok = hanlp.load(hanlp.pretrained.tok.COARSE_ELECTRA_SMALL_ZH)   
+        hanlp_tok = hanlp.load(hanlp.pretrained.tok.COARSE_ELECTRA_SMALL_ZH, devices=list(range(torch.cuda.device_count())))
+        # hanlp_tok = hanlp.load(hanlp.pretrained.tok.COARSE_ELECTRA_SMALL_ZH,device=[0,1])   
         segment_tool = lambda sents: hanlp_tok(sents)    #hanlp支持批量处理
         logger.info("Using hanlp for segmentation")
     else:
         logger.error(f"Unsupported segmentation tool: {segment}")
         raise ValueError(f"Unsupported segmentation tool: {segment}")
 
-    for txt_file, paragraph in tqdm(iterable=load_corpus(corpus_dir), desc="Processing paragraphs"):
+    for txt_file, paragraph in tqdm(iterable=load_corpus(corpus_dir), total=16605369, desc="Processing paragraphs"):
         if current_file is not None and txt_file != current_file:
             if _flush_dp_file(dp_conn, dp_doc_id, file_tf):
                 dp_doc_id += 1
@@ -242,16 +244,14 @@ def save_word_list(word_freq: Counter, output_dir: Path = Path("output"), filena
     logger.info(f"Saved {len(word_freq)} words to {output_path}")
 
 
-def cumulative_token_coverage(freq_counter: Counter, threshold: float = 0.99):
+def cumulative_token_coverage(freq_counter: Counter, threshold: float = 0.9995):
     """累积覆盖率截断过滤低频词（语言服从齐普夫定律 Zipf's law）。
 
     按词频从高到低排序，逐个累加 token 占比，直到累积覆盖率 >= threshold 为止，
     返回覆盖率达标的高频词子集（保持频率降序）。
+    
+    《电磁泄漏还原图像中的中文文本识别技术研究》（2021，中文期刊）​
 
-    截断标准：
-    95% 覆盖率：核心精炼常用词表（通常几千到一万词，足够日常交流）。
-    98% ~ 99% 覆盖率：完备常用词表（工业界预训练常用词的标准线，通常 2万 ~ 5万词）。
-    99% 之后：剩下的长尾词多为错别字、生僻专有名词或分词碎片，直接全部扔掉。
     """
     total = sum(freq_counter.values())
     if total <= 0:
@@ -269,10 +269,13 @@ def cumulative_token_coverage(freq_counter: Counter, threshold: float = 0.99):
         cumulative += freq
         if cumulative / total >= threshold:
             break
-
+    
+    how_much_filtered = len(filtered_words) / len(freq_counter) if freq_counter else 0
+    
     logger.info(
         f"Kept {len(filtered_counter)} words, covering {cumulative / total:.2%} "
         f"of total tokens (threshold={threshold})"
+        f', which is {how_much_filtered:.2%} of total words'
     )
 
     save_frequency_to_file(filtered_counter, Path("word_freq_ctc.csv"))
@@ -298,9 +301,11 @@ def filter_by_df(DF_counter: Counter, total_docs: int, threshold: float = 0.0000
             rdf[word] = df / total_docs
     save_frequency_to_file(rdf, Path("rdf.csv"))
     filtered_words = list(rdf.keys())
+    
+    how_much_filtered = len(filtered_words) / len(DF_counter) if DF_counter else 0
     logger.info(
         f"Kept {len(filtered_words)} words with document frequency >= {threshold} "
-        f"({len(filtered_words) / len(DF_counter):.2%} of total words)"
+        f"({how_much_filtered:.2%} of total words)"
     )
     return rdf, filtered_words
 
@@ -607,7 +612,7 @@ def main(corpus_dir: Path, charset_path: Path, output_dir: Path, segmentation_to
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--corpus_dir", type=Path, default="./corpus")
-    parser.add_argument("--charset_path", type=Path, default="./characters.txt")
+    parser.add_argument("--charset_path", type=Path, default="./charset.txt")
     parser.add_argument("--output_dir", type=Path, default="./output")
     parser.add_argument("--segmentation_tool", '-s', type=str, default="jieba", choices=["jieba", "hanlp"], help="Segmentation tool to use: 'jieba' or 'hanlp'")
 

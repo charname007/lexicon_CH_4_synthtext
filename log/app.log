@@ -16,3 +16,19 @@
 2026-10-13 10:06:17.275 | INFO     | __main__:plot_word_frequency_loglog:174 - Saved log-log plot to output\word_freq_loglog.svg
 2026-10-13 10:07:13.832 | INFO     | plot_word_freq_loglog:plot_word_frequency_loglog:191 - Saved log-log plot to C:\Users\z\AppData\Local\Temp\tmpca2521r0\word_freq_loglog.svg
 2026-10-13 10:07:32.002 | INFO     | __main__:plot_word_frequency_loglog:191 - Saved log-log plot to output\word_freq_loglog.svg
+2026-10-13 13:54:56.749 | INFO     | build_lexicon:cumulative_token_coverage:271 - Kept 1211799 words, covering 99.50% of total tokens (threshold=0.995), which is 16.29% of total words
+2026-10-13 13:55:07.074 | INFO     | build_lexicon:cumulative_token_coverage:254 - Empty frequency counter, nothing to filter
+2026-10-13 13:55:07.077 | INFO     | build_lexicon:cumulative_token_coverage:271 - Kept 1 words, covering 99.01% of total tokens (threshold=0.5), which is 50.00% of total words
+2026-10-13 13:55:07.078 | INFO     | build_lexicon:cumulative_token_coverage:271 - Kept 2 words, covering 99.02% of total tokens (threshold=0.99), which is 66.67% of total words
+2026-10-13 14:07:30.722 | INFO     | build_lexicon:cumulative_token_coverage:254 - Empty frequency counter, nothing to filter
+2026-10-13 14:07:30.722 | INFO     | build_lexicon:cumulative_token_coverage:271 - Kept 1 words, covering 99.01% of total tokens (threshold=0.5), which is 50.00% of total words
+2026-10-13 14:07:30.724 | INFO     | build_lexicon:cumulative_token_coverage:271 - Kept 2 words, covering 99.02% of total tokens (threshold=0.99), which is 66.67% of total words
+2026-10-13 15:11:35.156 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 3 words, covering 100.00% of total tokens (threshold=0.995), which is 100.00% of total words
+2026-10-13 15:12:06.761 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 1211799 words, covering 99.50% of total tokens (threshold=0.995), which is 16.29% of total words
+2026-10-13 15:12:08.016 | INFO     | build_lexicon:save_word_list:244 - Saved 53093 words to E:\CODES\lexicon_CH_4_synthtext\output\lexicon_ctc0995_rdf0001.csv
+2026-10-13 15:23:39.265 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 3 words, covering 99.50% of total tokens (threshold=0.995), which is 75.00% of total words
+2026-10-13 15:23:56.543 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 1211799 words, covering 99.50% of total tokens (threshold=0.995), which is 16.29% of total words
+2026-10-13 15:44:57.143 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 3 words, covering 99.95% of total tokens (threshold=0.995), which is 75.00% of total words
+2026-10-13 15:44:57.143 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 2 words, covering 99.90% of total tokens (threshold=0.995), which is 66.67% of total words
+2026-10-13 15:45:26.461 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 1211799 words, covering 99.50% of total tokens (threshold=0.995), which is 16.29% of total words
+2026-10-13 15:45:29.211 | INFO     | build_lexicon:cumulative_token_coverage:273 - Kept 1728738 words, covering 99.50% of total tokens (threshold=0.995), which is 23.24% of total words
