@@ -554,7 +554,10 @@ def filter(word_freq: Counter, DF_counter: Counter, total_docs: int):
         DF_counter (Counter): _description_
         total_docs (int): _description_
     """
-    filtered_DF, filtered_words = filter_by_df(DF_counter, total_docs, threshold=0.0001)
+    # 原阈值 0.0001（df/total_docs，即词需出现在 ≥1661 篇文档）。改为 1e-6（≥17 篇）：
+    # 依据 evaluate_thresholds.py 的阈值扫描，Recall 优先（参考表为 2011 年，Precision 被系统性低估），
+    # df=1e-6 + ctc=0.99 时对《现代汉语常用词表》Recall 40.87% → 86.54%。
+    filtered_DF, filtered_words = filter_by_df(DF_counter, total_docs, threshold=1e-6)
     logger.info(f"Filtered document frequencies with {len(filtered_DF)} documents")
 
     word_freq = Counter({w: word_freq[w] for w in filtered_words if w in word_freq})
