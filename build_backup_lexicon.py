@@ -1,5 +1,5 @@
 """
-从维基百科（corpus/wiki_zh）与《现代汉语词典》（corpus/xdhycd）提取条目标题，
+从维基百科（corpus/wiki_zh）与《现代汉语词典》（reference/xdhycd）提取条目标题，
 按字符表白名单过滤后合并去重，生成一份备用词表。
 
 - 维基百科：每个文件为 JSON Lines（每行一个 JSON 对象），取其中的 title 字段。
@@ -7,7 +7,7 @@
 - 只保留所有字符都在白名单内的词条，合并去重后排序写入 output/backup_lexicon.txt。
 
 用法（在仓库根目录）：
-    python build_backup_lexicon.py --wiki_dir ./corpus/wiki_zh --dict_dir ./corpus/xdhycd \
+    python build_backup_lexicon.py --wiki_dir ./corpus/wiki_zh --dict_dir ./reference/xdhycd \
         --charset_path ./charset.txt --output_dir ./output
 """
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         description="从维基百科与《现代汉语词典》提取条目标题，生成备用词表。"
     )
     parser.add_argument("--wiki_dir", type=Path, default="./corpus/wiki_zh")
-    parser.add_argument("--dict_dir", type=Path, default="./corpus/xdhycd")
+    parser.add_argument("--dict_dir", type=Path, default="./reference/xdhycd")
     parser.add_argument("--charset_path", type=Path, default="./charset.txt")
     parser.add_argument("--output_dir", type=Path, default="./output")
     parser.add_argument("--filename", type=str, default="backup_lexicon.txt")

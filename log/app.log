@@ -58,3 +58,25 @@
 2026-10-14 15:03:27.019 | INFO     | __main__:main:168 - 参考[common] 词数: 56462, word_freq 词数: 7439769, total_docs: 16605372
 2026-10-14 15:03:40.983 | INFO     | __main__:main:196 - 选中临界点: df=1e-06, ctc=0.99, 词数=260907, P=18.73%, R=86.54%, F1=30.79%
 2026-10-14 15:03:43.806 | INFO     | __main__:main:223 - Saved 260907 words to output\lexicon_v2.txt and output\lexicon_v2.csv
+2026-10-14 18:30:17.426 | INFO     | __main__:resolve_total_docs:94 - 从 output\total_docs.txt 读到 total_docs = 16605372
+2026-10-14 18:30:17.495 | INFO     | __main__:main:168 - 参考[common] 词数: 56462, word_freq 词数: 7439769, total_docs: 16605372
+2026-10-14 18:30:30.792 | INFO     | __main__:main:196 - 选中临界点: df=1e-06, ctc=0.99, 词数=260907, P=18.73%, R=86.54%, F1=30.79%
+2026-10-14 18:30:32.617 | INFO     | __main__:main:209 - 过滤词数: 260907, 保底补回: 6520, 最终: 267427, 最终 Recall: 98.09%
+2026-10-14 18:30:33.597 | INFO     | __main__:main:231 - Saved 267427 words to output\lexicon_v2.txt and output\lexicon_v2.csv
+2026-10-14 19:00:43.582 | INFO     | __main__:resolve_total_docs:101 - 统计 total_docs = 16605369，已写入 output\total_docs.txt
+2026-10-14 19:00:43.694 | INFO     | __main__:main:168 - 参考[common] 词数: 56462, word_freq 词数: 7664476, total_docs: 16605369
+2026-10-14 19:01:03.468 | INFO     | __main__:main:196 - 选中临界点: df=1e-06, ctc=0.99, 词数=236350, P=20.22%, R=84.62%, F1=32.64%
+2026-10-14 19:01:06.170 | INFO     | __main__:main:209 - 过滤词数: 236350, 保底补回: 7608, 最终: 243958, 最终 Recall: 98.10%
+2026-10-14 19:01:07.502 | INFO     | __main__:main:231 - Saved 243958 words to output\lexicon_v2.txt and output\lexicon_v2.csv
+2026-10-14 19:56:03.556 | INFO     | __main__:resolve_total_docs:103 - 从 output\total_docs.txt 读到 total_docs = 16605369
+2026-10-14 19:56:03.741 | INFO     | __main__:main:178 - 参考[common] 词数: 56462, word_freq 词数: 7664476, total_docs: 16605369
+2026-10-14 19:56:15.932 | INFO     | __main__:main:208 - 选中临界点: df=1e-06, ctc=0.994, 词数=325142, P=15.58%, R=89.71%, F1=26.55%
+2026-10-14 19:56:19.501 | INFO     | __main__:main:221 - 过滤词数: 325142, 保底补回: 4736, 最终: 329878, 最终 Recall: 98.10%
+2026-10-14 19:56:22.342 | INFO     | __main__:main:243 - Saved 329878 words to output\lexicon_v2.txt and output\lexicon_v2.csv
+2026-10-14 21:31:54.707 | INFO     | __main__:resolve_total_docs:109 - 从 output\total_docs.txt 读到 total_docs = 16605369
+2026-10-14 21:31:54.781 | INFO     | __main__:main:186 - 参考[common] 词数: 56462, word_freq 词数: 7664476, total_docs: 16605369
+2026-10-14 21:31:55.170 | INFO     | __main__:main:192 - 合法性参照（词典+维基）词数: 941736
+2026-10-14 21:32:01.668 | INFO     | __main__:main:224 - 选中临界点: df=1e-06, ctc=0.994, 词数=325142, P=15.58%, R=89.73%, F1=26.55%
+2026-10-14 21:32:03.674 | INFO     | __main__:main:237 - 过滤词数: 325142, 保底补回: 4727, 最终: 329869, 最终 Recall: 98.10%
+2026-10-14 21:32:03.749 | INFO     | __main__:main:242 - 合法性 precision（vs 词典+维基）: 98090/329869 = 29.74%
+2026-10-14 21:32:05.102 | INFO     | __main__:main:264 - Saved 329869 words to output\lexicon_v2.txt and output\lexicon_v2.csv

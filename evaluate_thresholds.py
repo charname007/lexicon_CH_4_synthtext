@@ -11,7 +11,7 @@
     python evaluate_thresholds.py \
         --word_freq output/word_freq.csv \
         --df_word output/DF_word.csv \
-        --reference "corpus/现代汉语常用词表（第2版）.tsv"
+        --reference "reference/现代汉语常用词表（第2版）.tsv"
 """
 
 import argparse
@@ -116,8 +116,8 @@ def main():
     parser = argparse.ArgumentParser(description="阈值扫描：词频覆盖率 / 文档频过滤 → Precision/Recall/F1")
     parser.add_argument("--word_freq", type=Path, default=Path("output/word_freq.csv"))
     parser.add_argument("--df_word", type=Path, default=Path("output/DF_word.csv"))
-    parser.add_argument("--reference", type=Path, default=Path("corpus/现代汉语常用词表（第2版）.tsv"))
-    parser.add_argument("--dict_dir", type=Path, default=Path("corpus/xdhycd"), help="现代汉语词典目录，作为第二参考词表")
+    parser.add_argument("--reference", type=Path, default=Path("reference/现代汉语常用词表（第2版）.tsv"))
+    parser.add_argument("--dict_dir", type=Path, default=Path("reference/xdhycd"), help="现代汉语词典目录，作为第二参考词表")
     parser.add_argument("--total_docs", type=int, default=16605169, help="总文档（段落）数，用于 filter_by_df 的 df/total_docs")
     parser.add_argument("--ctc_thresholds", type=float, nargs="+",
                         default=[0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99, 0.995, 0.999])
