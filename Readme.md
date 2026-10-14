@@ -68,6 +68,24 @@ Doc_Ratio越高），代表这个词在真实社会越通用。
 《义务教育常用词表（草案）》（2019，15,114 词，四级分级）
 《现代汉语常用词表》约 5.6 万词
 
+## 已实现脚本
+
+### build_backup_lexicon.py —— 备用词表
+
+从 `corpus/wiki_zh`（JSON Lines，取 `title`）与 `corpus/xdhycd`（取 `【词头】`）提取条目标题，按 `charset.txt` 白名单过滤后合并去重，写入 `output/lexicon（non-frequency）.txt`（约 94 万条，无词频信息）。
+
+```bash
+python build_backup_lexicon.py --wiki_dir ./corpus/wiki_zh --dict_dir ./corpus/xdhycd --charset_path ./charset.txt
+```
+
+### evaluate_thresholds.py —— 阈值扫描评测
+
+在 `output/word_freq.csv` / `output/DF_word.csv` 上扫描 `cumulative_token_coverage` 与 `filter_by_df` 的阈值，与《现代汉语常用词表（第2版）》比对计算 Precision / Recall / F1，结果写 `output/threshold_sweep.csv`。默认扫描 CTC=0.5~0.999、DF=1e-6~1e-1；最优 F1 ≈ 47.7%（df=1e-6, ctc=0.95）。
+
+```bash
+python evaluate_thresholds.py
+```
+
 ## 中文语料：
 CLUECorpusSmall ：
 wiki2019zh
