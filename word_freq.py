@@ -373,7 +373,8 @@ def _make_segmenter(segment: str):
 
 def count_word_frequency(corpus_dir: Path, charset: set, segment: str, metrics, store: GroupStore,
                          batch_size: int = 64, files_per_group: int = FILES_PER_GROUP_DEFAULT,
-                         shuffle_files: bool = True) -> Stats:
+                         shuffle_files: bool = True,
+                         txt_files: list[Path] | None = None) -> Stats:
     """按 required_instances(metrics) 驱动「按需累计」的一趟遍历，返回填好的 Stats。
 
     全局统计（word_freq/char_freq/df_word/word_sum_sq/total_words/total_docs）照旧；
@@ -383,8 +384,11 @@ def count_word_frequency(corpus_dir: Path, charset: set, segment: str, metrics, 
     active_gkeys = sorted({gk for _, gk in required_instances(metrics) if gk})
     logger.info(f"分口径统计（active group keys）: {active_gkeys or '无'}")
 
-    # 文件列表只扫一次盘；shuffle_files=True 时在此打乱一次，供「分块」与「遍历」共用同一顺序
-    txt_files = list(corpus_dir.rglob("*.txt"))
+    # 文件列表只扫一次盘；也允许调用方传入子集，用于抽样评估完整流程耗时。
+    if txt_files is None:
+        txt_files = list(corpus_dir.rglob("*.txt"))
+    else:
+        txt_files = list(txt_files)
     if shuffle_files:
         random.shuffle(txt_files)
 

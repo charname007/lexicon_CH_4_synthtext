@@ -93,7 +93,8 @@ def build_lexicon(corpus_dir: Path, charset_path: Path, output_dir: Path,
                   segmentation_tool: str = "hanlp", batch_size: int = 64,
                   files_per_group: int = FILES_PER_GROUP_DEFAULT,
                   dp_files_per_group: int | None = None,
-                  universality_files_per_group: int | None = None) -> Counter:
+                  universality_files_per_group: int | None = None,
+                  txt_files: list[Path] | None = None) -> Counter:
     """完整流程：统计 → 落各指标 CSV → 过滤求交 → 写最终词表；返回词表 Counter。
 
     dp_files_per_group / universality_files_per_group 为 None 时取 files_per_group。
@@ -115,7 +116,8 @@ def build_lexicon(corpus_dir: Path, charset_path: Path, output_dir: Path,
     # 临时 sqlite 生命周期必须覆盖「统计主循环 + 所有指标消费」
     with open_group_store(active_gkeys) as store:
         stats = count_word_frequency(corpus_dir, charset, segmentation_tool, all_metrics, store,
-                                     batch_size, files_per_group)
+                                     batch_size, files_per_group,
+                                     shuffle_files=txt_files is None, txt_files=txt_files)
 
         # 全局统计落 CSV
         save_frequency_to_file(stats["word_freq"], Path("word_freq.csv"), output_dir)
