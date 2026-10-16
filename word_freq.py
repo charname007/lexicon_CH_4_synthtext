@@ -14,9 +14,10 @@
 5. 读取侧以「工厂」形式提供倒排迭代器：索引顺序扫描不可回放，故每次调用返回新迭代器。
 """
 
+import csv
+import json
 import os
 import re
-import random
 import sqlite3
 import tempfile
 from collections import Counter, defaultdict
@@ -109,14 +110,16 @@ def _validate_gkey(gkey: str) -> None:
 
 
 class GroupStore:
-    """临时 sqlite 的组表 / 倒排表封装。
+    """sqlite 的组表 / 倒排表封装。
 
     - group_id(gkey,label)：内存缓存，首次才 INSERT OR IGNORE + 回查组 id。
     - add(gkey,label,tf)：同事务内 UPDATE size += sum(tf.values()) 后 executemany 追加 postings。
+    - db_path：sqlite 文件路径（keep=True 时供后续调试脚本重连）。
     """
 
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: sqlite3.Connection, db_path: str | None = None):
         self.conn = conn
+        self.db_path = db_path
         self._cache: dict[tuple[str, str], int] = {}
 
     def group_id(self, gkey: str, label: str) -> int:
@@ -148,14 +151,23 @@ class GroupStore:
 
 
 @contextmanager
-def open_group_store(gkeys):
-    """打开临时 sqlite：为每个 gkey 建 groups__/postings__ 表及覆盖索引。
+def open_group_store(gkeys, keep: bool = False, db_path: str | None = None):
+    """打开 sqlite：为每个 gkey 建 groups__/postings__ 表及覆盖索引。
 
-    生命周期覆盖「统计主循环 + 所有指标消费」；出 with 后提交、关闭并删除临时库。
+    参数：
+        gkeys: 分组键列表
+        keep: True 时出 with 后**不删除** sqlite 文件（供后续调试脚本重连）
+        db_path: 指定 sqlite 路径；None 则用临时文件
+    生命周期覆盖「统计主循环 + 所有指标消费」；keep=False 时出 with 后删除临时库。
     """
-    tmp = tempfile.NamedTemporaryFile(prefix="group_tf_", suffix=".sqlite", delete=False)
-    tmp.close()
-    conn = sqlite3.connect(tmp.name)
+    if db_path is None:
+        tmp = tempfile.NamedTemporaryFile(prefix="group_tf_", suffix=".sqlite", delete=False)
+        tmp.close()
+        db_path = tmp.name
+    else:
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA synchronous = OFF")
     conn.execute("PRAGMA journal_mode = MEMORY")
     try:
@@ -176,15 +188,18 @@ def open_group_store(gkeys):
                 f"ON postings__{gkey}(word, group_id, fi)"
             )
         conn.commit()
-        logger.info(f"Opened group temp sqlite: {tmp.name} (gkeys={list(gkeys)})")
-        yield GroupStore(conn)
+        logger.info(f"Opened group sqlite: {db_path} (gkeys={list(gkeys)}, keep={keep})")
+        yield GroupStore(conn, db_path)
     finally:
         conn.commit()
         conn.close()
-        try:
-            os.unlink(tmp.name)
-        except OSError:
-            logger.warning(f"Could not remove group temp file: {tmp.name}")
+        if not keep:
+            try:
+                os.unlink(db_path)
+            except OSError:
+                logger.warning(f"Could not remove group sqlite: {db_path}")
+        else:
+            logger.info(f"Kept group sqlite for later tuning: {db_path}")
 
 
 def _relative_label(txt_file: Path, corpus_root: Path | None) -> str:
