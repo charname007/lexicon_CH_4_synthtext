@@ -4,4 +4,8 @@ __pycache__/
 *.pyc
 CLAUDE.md
 AGENTS.md
-reference/xdhydcd/
+reference/
+output/
+output1/
+output2/
+
