@@ -80,3 +80,12 @@
 2026-10-14 21:32:03.674 | INFO     | __main__:main:237 - 过滤词数: 325142, 保底补回: 4727, 最终: 329869, 最终 Recall: 98.10%
 2026-10-14 21:32:03.749 | INFO     | __main__:main:242 - 合法性 precision（vs 词典+维基）: 98090/329869 = 29.74%
 2026-10-14 21:32:05.102 | INFO     | __main__:main:264 - Saved 329869 words to output\lexicon_v2.txt and output\lexicon_v2.csv
+2026-10-16 21:38:22.028 | INFO     | word_freq:open_group_store:196 - Opened group sqlite: C:\Users\z\AppData\Local\Temp\group_tf_s5getsly.sqlite (gkeys=['chunk'], keep=False)
+2026-10-16 21:38:22.028 | INFO     | word_freq:count_word_frequency:365 - 分口径统计（active group keys）: ['chunk']
+2026-10-16 21:38:22.030 | INFO     | word_freq:count_word_frequency:372 - Chunk grouping: 5 files -> 3 groups (files_per_group=2, shuffle=True)
+2026-10-16 21:38:22.059 | INFO     | word_freq:iter_paragraph_batches:90 - Yielding batch of 2 paragraphs from E:\CODES\lexicon_CH_4_synthtext\output\_chunk_smoke\corpus\wiki2019zh_corpus\a.txt
+2026-10-16 21:38:22.076 | INFO     | word_freq:iter_paragraph_batches:90 - Yielding batch of 2 paragraphs from E:\CODES\lexicon_CH_4_synthtext\output\_chunk_smoke\corpus\wiki2019zh_corpus\b.txt
+2026-10-16 21:38:22.087 | INFO     | word_freq:iter_paragraph_batches:90 - Yielding batch of 2 paragraphs from E:\CODES\lexicon_CH_4_synthtext\output\_chunk_smoke\corpus\wiki2019zh_corpus\c.txt
+2026-10-16 21:38:22.102 | INFO     | word_freq:iter_paragraph_batches:90 - Yielding batch of 2 paragraphs from E:\CODES\lexicon_CH_4_synthtext\output\_chunk_smoke\corpus\wiki2019zh_corpus\d.txt
+2026-10-16 21:38:22.114 | INFO     | word_freq:iter_paragraph_batches:90 - Yielding batch of 1 paragraphs from E:\CODES\lexicon_CH_4_synthtext\output\_chunk_smoke\corpus\wiki2019zh_corpus\e.txt
+2026-10-16 21:38:22.115 | INFO     | word_freq:count_word_frequency:449 - Total words: 65, Total chars: 65, Total paragraphs: 9

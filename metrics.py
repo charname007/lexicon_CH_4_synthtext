@@ -64,7 +64,7 @@ class StatSpec:
     unit: str = "doc"          # token / char / doc / group / window / corpus
 
 
-DEFAULT_GROUP_KEY = "file"     # 分组键默认值：按 txt 文件分组
+DEFAULT_GROUP_KEY = "chunk"    # 分组键默认值：文件随机打乱后每 files_per_group 个一组
 
 REGISTRY: dict[str, StatSpec] = {
     # —— 全局统计 ——

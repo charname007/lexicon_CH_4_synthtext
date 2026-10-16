@@ -17,6 +17,7 @@
 import csv
 import json
 import os
+import random
 import re
 import sqlite3
 import tempfile
@@ -90,14 +91,18 @@ def iter_paragraph_batches(txt_file: Path, batch_size: int):
             yield txt_file, batch
 
 
-def load_corpus(corpus_dir: Path, batch_size: int = 64):
+def load_corpus(corpus_dir: Path, batch_size: int = 64, txt_files: list[Path] | None = None):
     """顺序遍历所有 txt（batch 不跨文件），yield (txt_file, [paragraph, ...])。
 
     corpus来源：https://github.com/CLUEbenchmark/CLUE
     包含 news2016zh / webText2019zh / wiki2019zh / comments2019zh 等子语料。
+
+    txt_files 为 None 时自行 rglob 并随机打乱；否则按传入列表遍历
+    （调用方已负责是否打乱，避免与分块映射不一致）。
     """
-    txt_files = list(corpus_dir.rglob("*.txt"))
-    random.shuffle(txt_files)
+    if txt_files is None:
+        txt_files = list(corpus_dir.rglob("*.txt"))
+        random.shuffle(txt_files)
     for txt_file in tqdm(txt_files, total=len(txt_files), desc="Loading corpus"):
         yield from iter_paragraph_batches(txt_file, batch_size)
 
@@ -211,11 +216,58 @@ def _relative_label(txt_file: Path, corpus_root: Path | None) -> str:
     return str(txt_file)
 
 
+# ===== 定点分块（chunk 口径：文件随机打乱后每 N 个一组；N 可编进口径名，如 "chunk50"）=====
+
+FILES_PER_GROUP_DEFAULT = 20                 # 裸 "chunk" 口径的默认粒度：约 20 个文件一组
+
+_CHUNK_GKEY_RE = re.compile(r"^chunk(?:_?(\d+))?$")    # 匹配 "chunk" / "chunk20" / "chunk_20"
+
+_FILE_CHUNKS: dict[str, dict[Path, str]] = {}          # 口径名 -> (文件 -> 组标签)
+
+
+def is_chunk_gkey(gkey) -> bool:
+    """该口径名是否属于 chunk 家族（"chunk" 或 "chunk<N>"）。"""
+    return isinstance(gkey, str) and _CHUNK_GKEY_RE.match(gkey) is not None
+
+
+def chunk_size_of(gkey: str, default: int = FILES_PER_GROUP_DEFAULT) -> int:
+    """从口径名解析每组文件数：裸 "chunk" → default；"chunk50"/"chunk_50" → 50。"""
+    m = _CHUNK_GKEY_RE.match(gkey)
+    if m is None:
+        raise ValueError(f"非 chunk 口径: {gkey!r}")
+    return int(m.group(1)) if m.group(1) else default
+
+
+def build_file_chunks(txt_files, files_per_group: int = FILES_PER_GROUP_DEFAULT,
+                      shuffle: bool = True, seed: int | None = None) -> dict[Path, str]:
+    """把文件列表（随机打乱后）按 files_per_group 个一组切块，返回 {文件: 组标签}。
+
+    - shuffle=True → 先 random.shuffle 再切块（每次跑分组不同，不可复现）；
+    - 组标签形如 chunk_0000，按切块序号编号。
+    """
+    if files_per_group <= 0:
+        raise ValueError(f"files_per_group 必须为正整数: {files_per_group!r}")
+    files = list(txt_files)
+    if shuffle:
+        if seed is not None:
+            random.seed(seed)
+        random.shuffle(files)
+    return {f: f"chunk_{i // files_per_group:04d}" for i, f in enumerate(files)}
+
+
+def set_file_chunks(mapping: dict[str, dict[Path, str]]) -> None:
+    """登记 {口径名: (文件 -> 组标签)}，供 group_key_of 按口径名查询。"""
+    global _FILE_CHUNKS
+    _FILE_CHUNKS = mapping
+
+
 def group_key_of(para: str, txt_file: Path, gkey, corpus_root: Path | None = None) -> str:
     """把一个段落映射到它所属的组标签。
 
     gkey 可为内置名或自定义 callable：
     - "file"   → 相对 corpus_dir 的 txt 路径
+    - "chunk"   → 文件随机打乱后每 FILES_PER_GROUP_DEFAULT 个一组（如 chunk_0007）
+    - "chunk<N>" → 同上但每组 N 个文件（如 "chunk50"），粒度随口径名走
     - "source" → 相对 corpus_dir 路径的一级子目录名（如 news2016zh_corpus）
     - callable → str(callable(para, txt_file))
     """
@@ -225,6 +277,14 @@ def group_key_of(para: str, txt_file: Path, gkey, corpus_root: Path | None = Non
         return str(gkey(para, txt_file))
     if gkey == "file":
         return _relative_label(txt_file, corpus_root)
+    if is_chunk_gkey(gkey):
+        mapping = _FILE_CHUNKS.get(gkey)
+        if mapping is None:
+            raise KeyError(f"未登记的分块口径: {gkey!r}（需先 set_file_chunks）")
+        label = mapping.get(txt_file)
+        if label is None:
+            raise KeyError(f"文件未登记分块映射: {txt_file}（口径 {gkey!r}）")
+        return label
     if gkey == "source":
         label = _relative_label(txt_file, corpus_root)
         parts = Path(label).parts
@@ -312,7 +372,8 @@ def _make_segmenter(segment: str):
 # ===== 统计主循环 =====
 
 def count_word_frequency(corpus_dir: Path, charset: set, segment: str, metrics, store: GroupStore,
-                         batch_size: int = 64) -> Stats:
+                         batch_size: int = 64, files_per_group: int = FILES_PER_GROUP_DEFAULT,
+                         shuffle_files: bool = True) -> Stats:
     """按 required_instances(metrics) 驱动「按需累计」的一趟遍历，返回填好的 Stats。
 
     全局统计（word_freq/char_freq/df_word/word_sum_sq/total_words/total_docs）照旧；
@@ -321,6 +382,25 @@ def count_word_frequency(corpus_dir: Path, charset: set, segment: str, metrics, 
     """
     active_gkeys = sorted({gk for _, gk in required_instances(metrics) if gk})
     logger.info(f"分口径统计（active group keys）: {active_gkeys or '无'}")
+
+    # 文件列表只扫一次盘；shuffle_files=True 时在此打乱一次，供「分块」与「遍历」共用同一顺序
+    txt_files = list(corpus_dir.rglob("*.txt"))
+    if shuffle_files:
+        random.shuffle(txt_files)
+
+    # chunk 家族口径：各自按粒度切块（列表已打乱，传 shuffle=False 避免二次打乱）
+    chunk_gkeys = sorted(gk for gk in active_gkeys if is_chunk_gkey(gk))
+    if chunk_gkeys:
+        chunk_maps = {
+            gk: build_file_chunks(txt_files, chunk_size_of(gk, files_per_group), shuffle=False)
+            for gk in chunk_gkeys
+        }
+        set_file_chunks(chunk_maps)
+        logger.info(
+            "Chunk grouping: "
+            + ", ".join(f"{gk}={len(set(m.values()))}组" for gk, m in chunk_maps.items())
+            + f" (from {len(txt_files)} files, default={files_per_group}, shuffle={shuffle_files})"
+        )
 
     word_freq = Counter()
     char_freq = Counter(dict.fromkeys(charset, 0))
@@ -333,7 +413,7 @@ def count_word_frequency(corpus_dir: Path, charset: set, segment: str, metrics, 
 
     seg = _make_segmenter(segment)
 
-    for txt_file, batch in tqdm(load_corpus(corpus_dir, batch_size), desc="Processing batches"):
+    for txt_file, batch in tqdm(load_corpus(corpus_dir, batch_size, txt_files), desc="Processing batches"):
         # 1) 清洗得到这一批的段落列表
         cleaned = [clean_corpus(para) for para in batch]
         if not cleaned:

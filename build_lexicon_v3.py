@@ -21,10 +21,10 @@ from pathlib import Path
 from utils.logger import logger
 
 # ===== 统计执行层（见 word_freq.py）=====
-from word_freq import load_charset, count_word_frequency, open_group_store
+from word_freq import load_charset, count_word_frequency, open_group_store, FILES_PER_GROUP_DEFAULT
 # ===== 指标定义层（见 metrics.py）=====
 from metrics import (
-    DEFAULT_GROUP_KEY,
+    # DEFAULT_GROUP_KEY,   # v3 的两个报告指标已改为显式 "chunk<N>" 口径，暂不使用
     required_instances,
     apply_metrics,
     RDFMetric,
@@ -52,18 +52,25 @@ from build_lexicon import save_frequency_to_file, save_word_list
 # from tqdm import tqdm
 
 
-def build_metric_sets():
+# ===== 报告指标各自的分组粒度：粒度编进口径名 "chunk<N>"，每个指标互不影响 =====
+DP_FILES_PER_GROUP = FILES_PER_GROUP_DEFAULT              # Gries DP 默认每组文件数
+UNIVERSALITY_FILES_PER_GROUP = FILES_PER_GROUP_DEFAULT    # 通用度默认每组文件数（T 的量级随组数变化，故独立可调）
+
+
+def build_metric_sets(dp_files_per_group: int = DP_FILES_PER_GROUP,
+                      universality_files_per_group: int = UNIVERSALITY_FILES_PER_GROUP):
     """返回 (lexicon 求交用指标, 报告用指标)。
 
-    - lexicon 求交：RDF(df/total_docs >= 1e-6) + CTC(累积覆盖率 >= 0.99)，
-      复刻原 filter() 的「先 DF 后 CTC」；
+    - lexicon 求交：RDF(df/total_docs >= 1e-6) + CTC(累积覆盖率 >= 0.994)；
     - 报告用：CV / Gries DP / 通用度 / 使用度，只计算并落 CSV，不参与求交。
+      Gries DP 与通用度的分组粒度各自独立（口径名 "chunk<N>"），
+      传不同的 N 即可让两个指标使用不同粒度。
     """
-    lexicon_metrics = [RDFMetric(1e-6), CTCMetric(0.99)]
+    lexicon_metrics = [RDFMetric(1e-6), CTCMetric(0.994)]
     report_metrics = [
         CVMetric(1.0),
-        GriesDPMetric(1.0, group_key=DEFAULT_GROUP_KEY, normalize=False),
-        UniversalityMetric(1.0, group_key=DEFAULT_GROUP_KEY, t=2),
+        GriesDPMetric(1.0, group_key=f"chunk{dp_files_per_group}", normalize=False),
+        UniversalityMetric(1.0, group_key=f"chunk{universality_files_per_group}", t=2),
         UsageMetric(1.0),
     ]
     return lexicon_metrics, report_metrics
@@ -83,13 +90,22 @@ def save_lexicon(lexicon: Counter, output_dir: Path, stem: str = "lexicon_v3") -
 
 
 def build_lexicon(corpus_dir: Path, charset_path: Path, output_dir: Path,
-                  segmentation_tool: str = "hanlp", batch_size: int = 64) -> Counter:
-    """完整流程：统计 → 落各指标 CSV → 过滤求交 → 写最终词表；返回词表 Counter。"""
+                  segmentation_tool: str = "hanlp", batch_size: int = 64,
+                  files_per_group: int = FILES_PER_GROUP_DEFAULT,
+                  dp_files_per_group: int | None = None,
+                  universality_files_per_group: int | None = None) -> Counter:
+    """完整流程：统计 → 落各指标 CSV → 过滤求交 → 写最终词表；返回词表 Counter。
+
+    dp_files_per_group / universality_files_per_group 为 None 时取 files_per_group。
+    """
     charset = load_charset(charset_path)
     logger.info(f"Loaded charset from {charset_path}（{len(charset)} 字）")
     logger.info(f"Counted frequencies using {segmentation_tool}")
 
-    lexicon_metrics, report_metrics = build_metric_sets()
+    lexicon_metrics, report_metrics = build_metric_sets(
+        dp_files_per_group or files_per_group,
+        universality_files_per_group or files_per_group,
+    )
     all_metrics = lexicon_metrics + report_metrics
 
     # 由指标声明推导这一趟需要维护哪些分组倒排表（只有 GROUP 统计才建表）
@@ -98,7 +114,8 @@ def build_lexicon(corpus_dir: Path, charset_path: Path, output_dir: Path,
 
     # 临时 sqlite 生命周期必须覆盖「统计主循环 + 所有指标消费」
     with open_group_store(active_gkeys) as store:
-        stats = count_word_frequency(corpus_dir, charset, segmentation_tool, all_metrics, store, batch_size)
+        stats = count_word_frequency(corpus_dir, charset, segmentation_tool, all_metrics, store,
+                                     batch_size, files_per_group)
 
         # 全局统计落 CSV
         save_frequency_to_file(stats["word_freq"], Path("word_freq.csv"), output_dir)
@@ -133,9 +150,17 @@ def main():
                         choices=["hanlp"], help="分词工具（已弃用 jieba，仅支持 'hanlp'）")
     parser.add_argument("--batch_size", type=int, default=64,
                         help="Segmentation batch size (paragraphs per batch, batch never crosses files)")
+    parser.add_argument("--files_per_group", type=int, default=FILES_PER_GROUP_DEFAULT,
+                        help="分组粒度默认值：两个报告指标都用它（默认 20）")
+    parser.add_argument("--dp_files_per_group", type=int, default=None,
+                        help="Gries DP 的分组粒度（默认取 --files_per_group）")
+    parser.add_argument("--universality_files_per_group", type=int, default=None,
+                        help="通用度的分组粒度（默认取 --files_per_group）")
 
     args = parser.parse_args()
-    build_lexicon(args.corpus_dir, args.charset_path, args.output_dir, args.segmentation_tool, args.batch_size)
+    build_lexicon(args.corpus_dir, args.charset_path, args.output_dir, args.segmentation_tool,
+                  args.batch_size, args.files_per_group,
+                  args.dp_files_per_group, args.universality_files_per_group)
 
 
 if __name__ == "__main__":
