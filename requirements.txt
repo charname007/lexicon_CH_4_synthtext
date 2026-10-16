@@ -1,0 +1,19 @@
+# lexicon_CH_4_synthtext 依赖清单
+# Python 3.12；版本与仓库自带 .venv 保持一致
+# 安装：pip install -r requirements.txt
+
+# 分词后端（word_freq.py）
+hanlp==2.1.5
+torch==2.14.1
+
+# 进度条（word_freq.py / build_backup_lexicon.py / build_lexicon_v2.py）
+tqdm==4.70.1
+
+# 日志（utils/logger.py）
+loguru==0.7.3
+
+# Unicode 标点/符号识别（special_chars.py）
+regex==2026.9.29
+
+# 已弃用：分词统一改用 hanlp，按仓库规则注释保留，不安装
+# jieba==0.42.1

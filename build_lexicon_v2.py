@@ -5,15 +5,15 @@
    build_lexicon.count_frequency 重新分词计数。
 2. 扫 df_threshold × ctc_threshold 网格，对每个配置过滤出词表。
 3. 与参考词表（现代汉语常用词表 / 现代汉语词典）比对，算 P/R/F1。
-4. 选优：score() = Precision 达标(>= --precision_floor) 时的 Recall，否则 -inf；选 score 最高者。
-   score() 是唯一的选优标准，想换（最高 F1、加权组合）只改这一个函数。
+4. 选优：score() = Fβ = (1+β²)·P·R / (β²·P+R)，取 Fβ 最高的配置；β 由 --beta 指定，
+   默认 β=2（recall 权重为 precision 的 4 倍），β=1 即 F1。
 5. 保底：参考词表里在 word_freq 中出现过的词一律不丢（并集进最终词表，不参与选优）。
 
 
 假设:对于分词工具错误的新词专有词，频率应该低于常用词，因此如果以追求常用词覆盖率作为标准，能过滤哪些低频不常用词
 
 用法（仓库根目录）：
-    python build_lexicon_v2.py --reference common --precision_floor 0.15
+    python build_lexicon_v2.py --reference common --beta 2
 """
 
 import argparse
@@ -117,14 +117,26 @@ def resolve_total_docs(explicit, path: Path, corpus_dir: Path) -> int:
     return n
 
 
-def score(precision: float, recall: float, precision_floor: float) -> float:
-    """选优评分：Precision 不低于下限时返回 Recall（越大越好），否则 -inf（不可用）。
+# def score(precision: float, recall: float, precision_floor: float) -> float:
+#     """选优评分：Precision 不低于下限时返回 Recall（越大越好），否则 -inf（不可用）。
+#
+#     当前策略 = 「追 Recall + Precision 下限」。要换标准（最高 F1、加权组合等）只改这里。
+#     """
+#     if precision < precision_floor:
+#         return float("-inf")
+#     return recall
 
-    当前策略 = 「追 Recall + Precision 下限」。要换标准（最高 F1、加权组合等）只改这里。
+
+def score(precision: float, recall: float, beta: float = 2.0) -> float:
+    """选优评分：Fβ = (1+β²)·P·R / (β²·P + R)，越大越好。
+
+    β 是 recall 相对 precision 的权重：β=1 即 F1（等权）；β>1 偏 recall
+    （β=2 时 recall 权重为 precision 的 4 倍）；β<1 偏 precision。
     """
-    if precision < precision_floor:
-        return float("-inf")
-    return recall
+    if precision + recall == 0:
+        return 0.0
+    b2 = beta * beta
+    return (1 + b2) * precision * recall / (b2 * precision + recall)
 
 
 def load_reference(reference: str, reference_path: Path, dict_dir: Path) -> set:
@@ -142,7 +154,7 @@ def main():
     parser = argparse.ArgumentParser(description="build_lexicon v2：扫阈值 → score 选优 → 生成词表")
     parser.add_argument("--corpus_dir", type=Path, default=Path("./corpus"))
     parser.add_argument("--charset_path", type=Path, default=Path("./charset.txt"))
-    parser.add_argument("--segmentation_tool", "-s", type=str, default="jieba", choices=["jieba", "hanlp"])
+    parser.add_argument("--segmentation_tool", "-s", type=str, default="hanlp", choices=["hanlp"])
     parser.add_argument("--word_freq", type=Path, default=Path("output/word_freq.csv"))
     parser.add_argument("--df_word", type=Path, default=Path("output/DF_word.csv"))
     parser.add_argument("--total_docs", type=int, default=None,
@@ -153,8 +165,10 @@ def main():
     parser.add_argument("--dict_dir", type=Path, default=Path("reference/xdhycd"))
     parser.add_argument("--validity_path", type=Path, default=Path("output/lexicon（non-frequency）.txt"),
                         help="合法性参照（词典+维基标题，一行一词），只用于报告合法性 precision，不参与选优/保底")
-    parser.add_argument("--precision_floor", type=float, default=0.15,
-                        help="score 的 Precision 下限：Recall 只在 P 达标时才有意义")
+    # parser.add_argument("--precision_floor", type=float, default=0.15,
+    #                     help="score 的 Precision 下限：Recall 只在 P 达标时才有意义")
+    parser.add_argument("--beta", type=float, default=2.0,
+                        help="Fβ 选优的 β：recall 相对 precision 的权重（1=F1 等权，2=偏 recall，0.5=偏 precision）")
     parser.add_argument("--df_thresholds", type=float, nargs="+",
                         default=[1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1])
     parser.add_argument("--ctc_thresholds", type=float, nargs="+",
@@ -203,27 +217,31 @@ def main():
         for ct in args.ctc_thresholds:
             words = _cumulative_from_ordered(ordered, restricted_total, ct)
             _tp, gen_n, _ref_n, precision, recall, f1 = evaluate(words, ref_set)
-            results.append({"df": dt, "ctc": ct, "words": gen_n, "p": precision, "r": recall, "f1": f1})
+            fb = score(precision, recall, args.beta)
+            results.append({"df": dt, "ctc": ct, "words": gen_n, "p": precision, "r": recall, "f1": f1, "fb": fb})
 
-    # 4. 选优：score() 打分（recall 优先 + precision 下限），全不达标则退化为取 precision 最高者
-    feasible = [r for r in results if score(r["p"], r["r"], args.precision_floor) != float("-inf")]
-    if feasible:
-        chosen = max(feasible, key=lambda r: score(r["p"], r["r"], args.precision_floor))
-    else:
-        logger.warning(f"没有配置满足 Precision >= {args.precision_floor}，退化为取 Precision 最高者")
-        chosen = max(results, key=lambda r: r["p"])
+    # 4. 选优：Fβ 最大者（β 由 --beta 指定，默认 2 偏 recall）
+    chosen = max(results, key=lambda r: score(r["p"], r["r"], args.beta))
+    # 旧策略（recall 优先 + precision 硬下限），停用保留：
+    # feasible = [r for r in results if score(r["p"], r["r"], args.precision_floor) != float("-inf")]
+    # if feasible:
+    #     chosen = max(feasible, key=lambda r: score(r["p"], r["r"], args.precision_floor))
+    # else:
+    #     logger.warning(f"没有配置满足 Precision >= {args.precision_floor}，退化为取 Precision 最高者")
+    #     chosen = max(results, key=lambda r: r["p"])
 
     # 打印扫描结果
-    print(f"\n参考[{args.reference}] 词数={len(ref_set)}, precision_floor={args.precision_floor}")
-    print(f"{'df':>8} | {'ctc':>7} | {'words':>8} | {'P':>7} | {'R':>7} | {'F1':>7}")
-    print("-" * 58)
+    print(f"\n参考[{args.reference}] 词数={len(ref_set)}, beta={args.beta:g}")
+    print(f"{'df':>8} | {'ctc':>7} | {'words':>8} | {'P':>7} | {'R':>7} | {'F1':>7} | {'Fb':>7}")
+    print("-" * 68)
     for rec in results:
         mark = "  <- 选中" if (rec["df"] == chosen["df"] and rec["ctc"] == chosen["ctc"]) else ""
-        print(f"{rec['df']:>8g} | {rec['ctc']:>7g} | {rec['words']:>8} | {rec['p']:>7.2%} | {rec['r']:>7.2%} | {rec['f1']:>7.2%}{mark}")
+        print(f"{rec['df']:>8g} | {rec['ctc']:>7g} | {rec['words']:>8} | {rec['p']:>7.2%} | {rec['r']:>7.2%} | {rec['f1']:>7.2%} | {rec['fb']:>7.2%}{mark}")
 
     logger.info(
         f"选中临界点: df={chosen['df']:g}, ctc={chosen['ctc']:g}, 词数={chosen['words']}, "
-        f"P={chosen['p']:.2%}, R={chosen['r']:.2%}, F1={chosen['f1']:.2%}"
+        f"P={chosen['p']:.2%}, R={chosen['r']:.2%}, F1={chosen['f1']:.2%}, "
+        f"Fb(beta={args.beta:g})={chosen['fb']:.2%}"
     )
 
     # 5. 重新过滤出选中配置的词表（不缓存每个配置的词集，省内存）

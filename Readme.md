@@ -163,3 +163,13 @@ synthtiger采用策略为
 c.d.
 ​
  . When the augmentation is triggered, it randomly chooses a character from vocabulary and samples a word having that character."
+
+
+## 通用度
+词频统计的新概念和新方法
+将语料分为k组，
+通用度为T=(t分之一次方各自频率 之和)的t次方/k
+t取2
+
+1. 分布率 D = tᵢ / T（tᵢ = 出现该词的文本数，T = 语料文本总数）
+2. 使用度/使用率 U = F × D，归一化后 Uᵢ = FᵢDᵢ / Σⱼ(FⱼDⱼ) ← 这是中文字词表传统的复合指标
